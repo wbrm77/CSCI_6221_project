@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var login: Button
 
-    private lateinit var signUp: Button
+    private lateinit var signup: Button
 
     private lateinit var firebaseAuth: FirebaseAuth
 
@@ -35,6 +35,7 @@ class MainActivity : AppCompatActivity() {
         username = findViewById(R.id.username)
         password = findViewById(R.id.password)
         login = findViewById(R.id.login)
+        signup = findViewById(R.id.signup)
 
         firebaseAuth = FirebaseAuth.getInstance()
         firebaseAnalytics = FirebaseAnalytics.getInstance(this)
@@ -56,10 +57,9 @@ class MainActivity : AppCompatActivity() {
                         val email = currentUser?.email
                         Toast.makeText(this, "Logged in as $email", Toast.LENGTH_SHORT).show()
 
-
+                        val intent = Intent(this, MenuActivity::class.java)
+                        startActivity(intent)
                     } else {
-                        firebaseAuth.createUserWithEmailAndPassword(inputtedUsername,inputtedPassword)
-
                         val exception = task.exception
 
                         // Example of logging some extra metadata (the error reason) with our analytic
@@ -70,11 +70,18 @@ class MainActivity : AppCompatActivity() {
                         firebaseAnalytics.logEvent("login_failed", bundle)
 
                         Toast.makeText(this, "Registration failed: $exception", Toast.LENGTH_SHORT).show()
-
                     }
-                    val intent = Intent(this, MenuActivity::class.java)
-                    startActivity(intent)
                 }
+        }
+
+        signup.setOnClickListener {
+            val inputtedUsername: String = username.text.toString().trim()
+            val inputtedPassword: String = password.text.toString().trim()
+
+            val intent = Intent(this, SignupActivity::class.java)
+            intent.putExtra("inputtedUsername", inputtedUsername)
+            intent.putExtra("inputtedPassword", inputtedPassword)
+            startActivity(intent)
         }
     }
 }
