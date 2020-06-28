@@ -8,6 +8,7 @@ import android.widget.EditText
 import android.widget.Toast
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 
 class SignupActivity : AppCompatActivity() {
     private lateinit var username: EditText
@@ -22,9 +23,13 @@ class SignupActivity : AppCompatActivity() {
 
     private lateinit var firebaseAnalytics: FirebaseAnalytics
 
+    private lateinit var firebaseDatabase: FirebaseDatabase
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_signup)
+
+        firebaseDatabase = FirebaseDatabase.getInstance()
 
         username = findViewById(R.id.username)
         password = findViewById(R.id.password)
@@ -56,6 +61,10 @@ class SignupActivity : AppCompatActivity() {
             if (task.isSuccessful) {
                 val user = firebaseAuth.currentUser
                 Toast.makeText(this, "Created user: ${user!!.email}",Toast.LENGTH_SHORT).show()
+
+                val reference = firebaseDatabase.getReference("friends")
+                val newUser = Friend(user.uid, newName, newUsername, "", emptyList())
+                reference.child(user.uid).setValue(newUser)
 
                 val intent = Intent(this, MenuActivity::class.java)
                 startActivity(intent)

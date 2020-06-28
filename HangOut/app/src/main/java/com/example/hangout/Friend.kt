@@ -5,8 +5,8 @@ data class Friend (
     val name: String,
     val email: String,
     val location: String,
-    val friends: Array<String>
+    val friends: List<String>
 ) {
     // Required by Firebase to cast to a custom object
-    constructor() : this("","","","", emptyArray())
+    constructor() : this("","","","", emptyList())
 }
