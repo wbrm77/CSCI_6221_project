@@ -6,6 +6,7 @@ import android.os.Bundle
 
 import android.util.Log
 import android.widget.Button
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -17,9 +18,16 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import okhttp3.Request
 import org.jetbrains.anko.doAsync
 import org.json.JSONObject
+
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -28,6 +36,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var okHttpClient: OkHttpClient
 
     private lateinit var confirm: Button
+
+    private lateinit var firebaseDatabase: FirebaseDatabase
+
+
+
 
     init {
         // Turn on console logging for our network traffic, useful during development
@@ -47,6 +60,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         confirm = findViewById(R.id.maps_button)
+
+        firebaseDatabase = FirebaseDatabase.getInstance()
+
+
     }
 
     /**
@@ -60,7 +77,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-
+        val reference = firebaseDatabase.getReference("friends")
         // Add a marker in Sydney and move the camera
         val GWU = LatLng(38.898365, -77.046753)
         val api = getString(R.string.apiKey)
@@ -72,13 +89,46 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             CameraUpdateFactory.newLatLngZoom(GWU, zoomLevel)
         )
 
-        fun checkInButton() {
+        fun checkInButton(marker: Business) {
             val colorPrimary = ContextCompat.getColor(
                 this, R.color.colorPrimary
             )
             confirm.setBackgroundColor(colorPrimary)
             confirm.text = "Check In Here"
             confirm.isEnabled = true
+
+        }
+        fun anyoneThere(place:String):Int{
+            var count  = 0
+            reference.addValueEventListener(object : ValueEventListener {
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(
+                        this@MapsActivity,
+                        "Failed to retrieve Reviews: $error!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+                override fun onDataChange(data: DataSnapshot) {
+                    val bundle = Bundle()
+                    var num =  0
+                    val numReviews = data.children.count()
+                    bundle.putInt("count", numReviews)
+                    //loop through friends checked in to see if it matches place
+                    data.children.forEach { child ->
+                        val friend = child.getValue(FriendsList::class.java)
+                        if (friend != null) {
+                            if (friend.checkedIn == place) {
+                               num ++
+                                Log.e("count", num.toString())
+                            }
+                        }
+                    }
+                    count = num
+                }
+            })
+            Log.e("num", count.toString())
+           return count
         }
         doAsync {
             var results: List<Business> = retrieveBusinesses(api)
@@ -92,13 +142,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                         results[i].lat,
                                         results[i].long
                                     )
-                                ).title(results[i].name).snippet((results[i].rating.toString())).icon(
+                                //find who is checked in
+                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
                                     BitmapDescriptorFactory.defaultMarker(
                                         BitmapDescriptorFactory.HUE_AZURE
                                     )
                                 )
                             )
                     }
+
                     fun changeColor(clickedMarker:Business) {
 
                         mMap.addMarker(MarkerOptions().position(
@@ -106,26 +158,34 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 clickedMarker.lat,
                                 clickedMarker.long
                             )
-                        ).title(clickedMarker.name).snippet(("CLICKED")).icon(BitmapDescriptorFactory.defaultMarker(
+                        ).title(clickedMarker.name).snippet(anyoneThere(clickedMarker.name).toString()).icon(BitmapDescriptorFactory.defaultMarker(
                             BitmapDescriptorFactory.HUE_RED
                         ))
                         )
-                        Log.e("here", mMap.toString())
                     }
                     mMap.setOnMarkerClickListener { marker ->
                         val clickedMarker =
                             results.find { result -> result.name == marker.title }
                         if (clickedMarker != null) {
-                            checkInButton()
-                            clickedMarker.checkin = true
+                            checkInButton(clickedMarker)
+
                         }
                         false
                     }
                     confirm.setOnClickListener {
+                        //need marker
                         val clickedMarker =
                             results.find { result -> result.checkin == true }
                         if(clickedMarker != null) {
+                            //change the marker when the person checks in
                             changeColor(clickedMarker)
+                            clickedMarker.checkin =  false
+                            //write to check in
+                            val currentUser = FirebaseAuth.getInstance().currentUser
+                            val user: String = currentUser!!.email!!
+                            val friend = FriendsList(user, clickedMarker.name)
+                            Log.e("friends", friend.toString())
+                            reference.push().setValue(friend)
                         }
                     }
                 }
@@ -144,12 +204,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     ): List<Business> {
         // Data setup
-        val GWU = LatLng(38.898365, -77.046753)
         val latitude = 38.898365
         val longitude = -77.046753
         val radius1 = 150
-        val categories = "pizza"
-        Log.e("api", apiKey)
         //val businessList = mutableListOf<Business>()
         // Build our request to turn - for now, using a hardcoded OAuth token
         //this needs to be off the systems
