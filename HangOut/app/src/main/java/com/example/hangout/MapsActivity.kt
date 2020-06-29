@@ -90,14 +90,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         )
         var friends = mutableListOf<FriendsList>()
-        fun checkInButton(marker: Business) {
+        fun checkInButton(marker: Business, id: String) {
             val colorPrimary = ContextCompat.getColor(
                 this, R.color.colorPrimary
             )
             confirm.setBackgroundColor(colorPrimary)
             confirm.text = "Check In Here"
             confirm.isEnabled = true
-            confirm.tag = marker.name
+            confirm.setTag(1, marker.name)
+            confirm.setTag(2, id)
 
         }
         reference.addValueEventListener(object : ValueEventListener {
@@ -153,7 +154,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
 
                     fun changeColor(clickedMarker:Business) {
-                        //delete original marker
+
                         mMap.addMarker(MarkerOptions().position(
                             LatLng(
                                 clickedMarker.lat,
@@ -168,7 +169,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         val clickedMarker =
                             results.find { result -> result.name == marker.title }
                         if (clickedMarker != null) {
-                            checkInButton(clickedMarker)
+                            checkInButton(clickedMarker, marker.getId())
 
                         }
                         false
@@ -176,10 +177,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     confirm.setOnClickListener {marker->
                         //need marker
                         val clickedMarker =
-                            results.find { result->  result.name == marker.tag }
+                            results.find { result->  result.name == marker.getTag(1)}
                         if(clickedMarker != null) {
                             //change the marker when the person checks in
                             changeColor(clickedMarker)
+
                             //write to check in
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             val user: String = currentUser!!.email!!
