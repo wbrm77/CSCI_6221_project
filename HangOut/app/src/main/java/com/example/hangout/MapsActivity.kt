@@ -18,6 +18,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.Marker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -77,6 +78,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+
         val reference = firebaseDatabase.getReference("friends") //change path
         // Add a marker in Sydney and move the camera
         val GWU = LatLng(38.898365, -77.046753)
@@ -90,15 +92,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         )
         var friends = mutableListOf<FriendsList>()
-        fun checkInButton(marker: Business, id: String) {
+        fun checkInButton(marker: Business, id:String) {
             val colorPrimary = ContextCompat.getColor(
                 this, R.color.colorPrimary
             )
             confirm.setBackgroundColor(colorPrimary)
             confirm.text = "Check In Here"
             confirm.isEnabled = true
-            confirm.setTag(1, marker.name)
-            confirm.setTag(2, id)
+            confirm.setTag(R.id.one,marker.name)
+            confirm.setTag(R.id.two,id )
+
+
 
         }
         reference.addValueEventListener(object : ValueEventListener {
@@ -135,10 +139,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         doAsync {
             var results: List<Business> = retrieveBusinesses(api)
+            var gMarker = mutableListOf<Marker>()
             if (results.isNotEmpty()) {
                 runOnUiThread {
                     for (i in 0 until results.size) {
-                            mMap.addMarker(
+                           var marker1 =  mMap.addMarker(
                                 MarkerOptions().position(
                                     LatLng(
                                         results[i].lat,
@@ -151,25 +156,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     )
                                 )
                             )
+                        gMarker.add(marker1)
+                    }
+                    gMarker.forEach {
+                        marker-> Log.e("marker",  marker.id)
                     }
 
                     fun changeColor(clickedMarker:Business) {
-
+                        var numCheckIn = anyoneThere(clickedMarker.name) + 1
                         mMap.addMarker(MarkerOptions().position(
                             LatLng(
                                 clickedMarker.lat,
                                 clickedMarker.long
                             )
-                        ).title(clickedMarker.name).snippet(anyoneThere(clickedMarker.name).toString()).icon(BitmapDescriptorFactory.defaultMarker(
+                        ).title(clickedMarker.name).snippet((numCheckIn).toString()).icon(BitmapDescriptorFactory.defaultMarker(
                             BitmapDescriptorFactory.HUE_RED
                         ))
                         )
-                    }
+                   }
                     mMap.setOnMarkerClickListener { marker ->
                         val clickedMarker =
                             results.find { result -> result.name == marker.title }
                         if (clickedMarker != null) {
-                            checkInButton(clickedMarker, marker.getId())
+                            checkInButton(clickedMarker, marker.id)
 
                         }
                         false
@@ -177,16 +186,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     confirm.setOnClickListener {marker->
                         //need marker
                         val clickedMarker =
-                            results.find { result->  result.name == marker.getTag(1)}
+                            results.find { result->  result.name == marker.getTag(R.id.one)}
                         if(clickedMarker != null) {
                             //change the marker when the person checks in
                             changeColor(clickedMarker)
+                            var m1 = gMarker.find{m-> m.id == marker.getTag(R.id.two)}
+                            if(m1 != null) m1.setVisible(false)
 
                             //write to check in
                             val currentUser = FirebaseAuth.getInstance().currentUser
                             val user: String = currentUser!!.email!!
                             val friend = FriendsList(user, clickedMarker.name)
-                            Log.e("friends", friend.toString())
                             reference.push().setValue(friend)
                         }
                     }
