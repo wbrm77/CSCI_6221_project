@@ -91,7 +91,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             CameraUpdateFactory.newLatLngZoom(GWU, zoomLevel)
 
         )
-        var friends = mutableListOf<FriendsList>()
+        var friends = mutableListOf<Friend>()
         fun checkInButton(marker: Business, id:String) {
             val colorPrimary = ContextCompat.getColor(
                 this, R.color.colorPrimary
@@ -120,7 +120,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 bundle.putInt("count", numReviews)
                 //loop through friends checked in to see if it matches place
                 data.children.forEach { child ->
-                    val friend = child.getValue(FriendsList::class.java)
+                    val friend = child.getValue(Friend::class.java)
                     if (friend != null) {
                         friends.add(friend)
                     }
@@ -130,7 +130,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         fun anyoneThere(place:String):Int{
             var count  = 0
             friends.forEach {friend->
-                if(friend.checkedIn == place) {
+                if(friend.location == place) {
                     count++
                 }
             }
@@ -195,9 +195,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                             //write to check in
                             val currentUser = FirebaseAuth.getInstance().currentUser
-                            val user: String = currentUser!!.email!!
-                            val friend = FriendsList(user, clickedMarker.name)
-                            reference.push().setValue(friend)
+//                            val user: String = currentUser!!.email!!
+//                            val friend = FriendsList(user, clickedMarker.name)
+//                            reference.push().setValue(friend)
+                            var updates = mapOf(currentUser!!.uid + "/location/" to clickedMarker.name)
+                            reference.updateChildren(updates)
                         }
                     }
                 }
