@@ -40,7 +40,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var firebaseDatabase: FirebaseDatabase
 
+    private lateinit var friends: MutableList<Friend>
 
+    private lateinit var currentUser: Friend
 
 
     init {
@@ -61,50 +63,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         confirm = findViewById(R.id.maps_button)
-
+        friends = mutableListOf<Friend>()
         firebaseDatabase = FirebaseDatabase.getInstance()
-
-
-    }
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
-    override fun onMapReady(googleMap: GoogleMap) {
-        mMap = googleMap
-
         val reference = firebaseDatabase.getReference("friends") //change path
-        // Add a marker in Sydney and move the camera
-        val GWU = LatLng(38.898365, -77.046753)
-        val api = getString(R.string.apiKey)
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(GWU))
-        //val api = getString(R.string.api_key)
-        mMap = googleMap
-        val zoomLevel = 16.0f
-        mMap.animateCamera(
-            CameraUpdateFactory.newLatLngZoom(GWU, zoomLevel)
-
-        )
-        var friends = mutableListOf<Friend>()
-        fun checkInButton(marker: Business, id:String) {
-            val colorPrimary = ContextCompat.getColor(
-                this, R.color.colorPrimary
-            )
-            confirm.setBackgroundColor(colorPrimary)
-            confirm.text = "Check In Here"
-            confirm.isEnabled = true
-            confirm.setTag(R.id.one,marker.name)
-            confirm.setTag(R.id.two,id )
-
-
-
-        }
         reference.addValueEventListener(object : ValueEventListener {
             override fun onCancelled(error: DatabaseError) {
                 Toast.makeText(
@@ -123,10 +84,55 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     val friend = child.getValue(Friend::class.java)
                     if (friend != null) {
                         friends.add(friend)
+                        if(friend.userId == FirebaseAuth.getInstance().currentUser!!.uid)  {
+                            currentUser = friend
+                        }
                     }
                 }
             }
         })
+
+
+    }
+
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     * This is where we can add markers or lines, add listeners or move the camera. In this case,
+     * we just add a marker near Sydney, Australia.
+     * If Google Play services is not installed on the device, the user will be prompted to install
+     * it inside the SupportMapFragment. This method will only be triggered once the user has
+     * installed Google Play services and returned to the app.
+     */
+    override fun onMapReady(googleMap: GoogleMap) {
+        mMap = googleMap
+
+        // Add a marker in Sydney and move the camera
+        val GWU = LatLng(38.898365, -77.046753)
+        val api = getString(R.string.apiKey)
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(GWU))
+        //val api = getString(R.string.api_key)
+        mMap = googleMap
+        val zoomLevel = 16.0f
+        mMap.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(GWU, zoomLevel)
+
+        )
+
+        fun checkInButton(marker: Business, id:String) {
+            val colorPrimary = ContextCompat.getColor(
+                this, R.color.colorPrimary
+            )
+            confirm.setBackgroundColor(colorPrimary)
+            confirm.text = "Check In Here"
+            confirm.isEnabled = true
+            confirm.setTag(R.id.one,marker.name)
+            confirm.setTag(R.id.two,id )
+
+
+
+        }
+
         fun anyoneThere(place:String):Int{
             var count  = 0
             friends.forEach {friend->
@@ -143,37 +149,56 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             if (results.isNotEmpty()) {
                 runOnUiThread {
                     for (i in 0 until results.size) {
-                           var marker1 =  mMap.addMarker(
+                        var marker1: Marker
+                        if(currentUser.location == results[i].name) {
+                             marker1 =  mMap.addMarker(
                                 MarkerOptions().position(
                                     LatLng(
                                         results[i].lat,
                                         results[i].long
                                     )
-                                //find who is checked in
+                                    //find who is checked in
+                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
+                                    BitmapDescriptorFactory.defaultMarker(
+                                        BitmapDescriptorFactory.HUE_RED
+                                    )
+                                )
+                            )
+                        }
+                        else if (anyoneThere(results[i].name) > 0) {
+                            marker1 =  mMap.addMarker(
+                                MarkerOptions().position(
+                                    LatLng(
+                                        results[i].lat,
+                                        results[i].long
+                                    )
+                                    //find who is checked in
+                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
+                                    BitmapDescriptorFactory.defaultMarker(
+                                        BitmapDescriptorFactory.HUE_MAGENTA
+                                    )
+                                )
+                            )
+                        }
+                        else {
+                             marker1 =  mMap.addMarker(
+                                MarkerOptions().position(
+                                    LatLng(
+                                        results[i].lat,
+                                        results[i].long
+                                    )
+                                    //find who is checked in
                                 ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
                                     BitmapDescriptorFactory.defaultMarker(
                                         BitmapDescriptorFactory.HUE_AZURE
                                     )
                                 )
                             )
+                        }
+
+
                         gMarker.add(marker1)
                     }
-                    gMarker.forEach {
-                        marker-> Log.e("marker",  marker.id)
-                    }
-
-                    fun changeColor(clickedMarker:Business) {
-                        var numCheckIn = anyoneThere(clickedMarker.name) + 1
-                        mMap.addMarker(MarkerOptions().position(
-                            LatLng(
-                                clickedMarker.lat,
-                                clickedMarker.long
-                            )
-                        ).title(clickedMarker.name).snippet((numCheckIn).toString()).icon(BitmapDescriptorFactory.defaultMarker(
-                            BitmapDescriptorFactory.HUE_RED
-                        ))
-                        )
-                   }
                     mMap.setOnMarkerClickListener { marker ->
                         val clickedMarker =
                             results.find { result -> result.name == marker.title }
@@ -185,21 +210,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                     confirm.setOnClickListener {marker->
                         //need marker
+                        var user  = FirebaseAuth.getInstance().currentUser
                         val clickedMarker =
                             results.find { result->  result.name == marker.getTag(R.id.one)}
                         if(clickedMarker != null) {
-                            //change the marker when the person checks in
-                            changeColor(clickedMarker)
-                            var m1 = gMarker.find{m-> m.id == marker.getTag(R.id.two)}
-                            if(m1 != null) m1.setVisible(false)
-
-                            //write to check in
-                            val currentUser = FirebaseAuth.getInstance().currentUser
-//                            val user: String = currentUser!!.email!!
-//                            val friend = FriendsList(user, clickedMarker.name)
-//                            reference.push().setValue(friend)
-                            var updates = mapOf(currentUser!!.uid + "/location/" to clickedMarker.name)
+                            val reference = firebaseDatabase.getReference("friends") //change path
+                            var updates = mapOf(user!!.uid + "/location/" to clickedMarker.name)
                             reference.updateChildren(updates)
+
+                            recreate()
                         }
                     }
                 }
