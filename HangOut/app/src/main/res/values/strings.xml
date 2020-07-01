@@ -12,5 +12,6 @@
     <string name="full_name">Full Name</string>
     <string name="maps_button">Click on a Location</string>
     <string name="hang_out">Hang Out!</string>
+    <string name="x">X</string>
 
 </resources>

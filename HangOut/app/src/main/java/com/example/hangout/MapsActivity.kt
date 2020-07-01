@@ -1,33 +1,34 @@
 package com.example.hangout
 
-import androidx.appcompat.app.AppCompatActivity
+
 import android.os.Bundle
-
-
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import okhttp3.Request
-import org.jetbrains.anko.doAsync
-import org.json.JSONObject
-
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.android.synthetic.main.activity_maps.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.logging.HttpLoggingInterceptor
+import org.jetbrains.anko.doAsync
+import org.json.JSONObject
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -42,7 +43,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var friends: MutableList<Friend>
 
-    private lateinit var currentUser: Friend
+    private var currentUser: Friend = Friend()
+
+    private lateinit var close_popup: Button
 
 
     init {
@@ -91,7 +94,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
         })
-
+        close_popup = findViewById(R.id.close_popup)
 
     }
 
@@ -164,8 +167,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     )
                                 )
                             )
-                        }
-                        else if (anyoneThere(results[i].name) > 0) {
+                        } else if (anyoneThere(results[i].name) > 0) {
                             marker1 =  mMap.addMarker(
                                 MarkerOptions().position(
                                     LatLng(
@@ -179,8 +181,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     )
                                 )
                             )
-                        }
-                        else {
+                        } else {
                              marker1 =  mMap.addMarker(
                                 MarkerOptions().position(
                                     LatLng(
@@ -195,19 +196,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 )
                             )
                         }
-
-
                         gMarker.add(marker1)
                     }
-                    mMap.setOnMarkerClickListener { marker ->
-                        val clickedMarker =
-                            results.find { result -> result.name == marker.title }
+
+                    mMap.setOnMarkerClickListener(OnMarkerClickListener { marker ->
+                        val clickedMarker = results.find { result -> result.name == marker.title }
                         if (clickedMarker != null) {
                             checkInButton(clickedMarker, marker.id)
 
                         }
-                        false
-                    }
+
+                        //focus the market
+                        if (linearLayoutCustomView.getVisibility() == View.VISIBLE)
+                            linearLayoutCustomView.setVisibility(View.GONE)
+                        else
+                            displayCustomeInfoWindow(marker)
+                        true
+                    })
                     confirm.setOnClickListener {marker->
                         //need marker
                         var user  = FirebaseAuth.getInstance().currentUser
@@ -230,7 +235,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-  
+    private fun displayCustomeInfoWindow(marker: Marker) {
+        linearLayoutCustomView.visibility = View.VISIBLE
+        val textViewTitle: TextView = linearLayoutCustomView.findViewById(R.id.textViewTitle)
+        val textViewOtherDetails: TextView = linearLayoutCustomView.findViewById(R.id.textViewOtherDetails)
+        textViewTitle.text = marker.title
+        textViewOtherDetails.text = "LatLong :: " + marker.position.latitude + "," + marker.position.longitude
+
+         close_popup.setOnClickListener {
+             linearLayoutCustomView.visibility = View.INVISIBLE
+         }
+    }
 
     fun retrieveBusinesses(
         apiKey: String
