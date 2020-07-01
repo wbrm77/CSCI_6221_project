@@ -17,10 +17,10 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/linearLayoutCustomView"
-        android:layout_width="410dp"
-        android:layout_height="150dp"
+        android:layout_width="wrap_content"
+        android:layout_height="232dp"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginTop="450dp"
+        android:layout_marginTop="375dp"
         android:background="@color/colorPrimaryDark"
         android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
@@ -34,7 +34,7 @@
             android:layout_height="66dp"
             android:textColor="#FFFFFF"
             android:textSize="36sp"
-            app:layout_constraintStart_toStartOf="@+id/textViewOtherDetails"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
@@ -48,16 +48,13 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/textViewOtherDetails"
-            android:layout_width="406dp"
-            android:layout_height="75dp"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp"
-            app:layout_constraintBottom_toBottomOf="parent"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler"
+            android:layout_width="402dp"
+            android:layout_height="159dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/close_popup" />
+            app:layout_constraintTop_toBottomOf="@+id/textViewTitle" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

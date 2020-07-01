@@ -9,6 +9,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
@@ -131,9 +133,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             confirm.isEnabled = true
             confirm.setTag(R.id.one,marker.name)
             confirm.setTag(R.id.two,id )
-
-
-
         }
 
         fun anyoneThere(place:String):Int{
@@ -161,7 +160,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                         results[i].long
                                     )
                                     //find who is checked in
-                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
+                                ).title(results[i].name).icon(
                                     BitmapDescriptorFactory.defaultMarker(
                                         BitmapDescriptorFactory.HUE_RED
                                     )
@@ -175,7 +174,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                         results[i].long
                                     )
                                     //find who is checked in
-                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
+                                ).title(results[i].name).icon(
                                     BitmapDescriptorFactory.defaultMarker(
                                         BitmapDescriptorFactory.HUE_MAGENTA
                                     )
@@ -189,7 +188,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                         results[i].long
                                     )
                                     //find who is checked in
-                                ).title(results[i].name).snippet(anyoneThere(results[i].name).toString()).icon(
+                                ).title(results[i].name).icon(
                                     BitmapDescriptorFactory.defaultMarker(
                                         BitmapDescriptorFactory.HUE_AZURE
                                     )
@@ -203,10 +202,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         val clickedMarker = results.find { result -> result.name == marker.title }
                         if (clickedMarker != null) {
                             checkInButton(clickedMarker, marker.id)
-
                         }
 
-                        //focus the market
                         if (linearLayoutCustomView.getVisibility() == View.VISIBLE)
                             linearLayoutCustomView.setVisibility(View.GONE)
                         else
@@ -227,10 +224,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         }
                     }
                 }
-
             }
-
-
        }
 
     }
@@ -238,14 +232,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun displayCustomeInfoWindow(marker: Marker) {
         linearLayoutCustomView.visibility = View.VISIBLE
         val textViewTitle: TextView = linearLayoutCustomView.findViewById(R.id.textViewTitle)
-        val textViewOtherDetails: TextView = linearLayoutCustomView.findViewById(R.id.textViewOtherDetails)
+        val recycler: RecyclerView = linearLayoutCustomView.findViewById(R.id.recycler)
+        recycler.layoutManager = LinearLayoutManager(this)
         textViewTitle.text = marker.title
-        textViewOtherDetails.text = "LatLong :: " + marker.position.latitude + "," + marker.position.longitude
+
+        var friendsAtLocation: List<Friend> = friends.filter { friend -> friend.location == marker.title }
+
+        if (friendsAtLocation.size > 0)
+            recycler.adapter = FriendsAdapter(friendsAtLocation)
+        else
+            recycler.adapter = FriendsAdapter(listOf(Friend("", "No Friends Here", "", "", emptyList())))
 
          close_popup.setOnClickListener {
              linearLayoutCustomView.visibility = View.INVISIBLE
          }
     }
+
 
     fun retrieveBusinesses(
         apiKey: String
